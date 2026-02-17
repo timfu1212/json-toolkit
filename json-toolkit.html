@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JSON Toolkit — by Tim Fu</title>
+
+  <!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║  JSON TOOLKIT — A developer utility Side Project         ║
+  ║  Author  : Tim Fu                                        ║
+  ║  Stack   : Vanilla HTML / CSS / JS  (zero dependencies)  ║
+  ║  Deploy  : GitHub Pages ready (single file)              ║
+  ╚══════════════════════════════════════════════════════════╝
+
+  Features:
+    1. Format / Minify JSON
+    2. Validate with human-readable errors
+    3. Interactive collapsible tree viewer
+    4. JSON ↔ CSV converter
+    5. Key statistics (depth, keys, size)
+    6. Copy / Download output
+  -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Chosen fonts: "Syne" (bold display) + "Fira Code" (monospace code) -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─────────────────────────────────────────────
+       DESIGN TOKENS
+       A dark "terminal-meets-editorial" aesthetic:
+       deep navy background, acid yellow accent.
+    ───────────────────────────────────────────── */
+    :root {
+      --bg:        #0b0e1a;       /* deep navy canvas */
+      --surface:   #111627;       /* card / panel */
+      --surface2:  #1a2035;       /* hover state */
+      --border:    #252d45;
+      --accent:    #f0e040;       /* acid yellow — the hero colour */
+      --accent2:   #40e0c8;       /* teal — secondary accent */
+      --danger:    #ff4d6d;
+      --success:   #3ddc84;
+      --text:      #e8ecf5;
+      --muted:     #6b7694;
+
+      /* JSON syntax colours */
+      --j-key:     #7dd3fc;       /* sky blue */
+      --j-str:     #86efac;       /* green */
+      --j-num:     #fbbf24;       /* amber */
+      --j-bool:    #c084fc;       /* purple */
+      --j-null:    #fb7185;       /* rose */
+
+      --radius:    10px;
+      --mono: 'Fira Code', 'Cascadia Code', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      /* subtle dot-grid texture for depth */
+      background-image: radial-gradient(circle, #1e2640 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 2.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11,14,26,.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: .5rem;
+      text-decoration: none;
+    }
+    /* Curly brace icon rendered in CSS */
+    .logo-brace {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: var(--mono);
+      line-height: 1;
+    }
+    .logo-name {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+    .logo-badge {
+      font-size: .65rem;
+      font-weight: 700;
+      background: var(--accent);
+      color: var(--bg);
+      padding: .15rem .4rem;
+      border-radius: 4px;
+      letter-spacing: .06em;
+      align-self: center;
+    }
+
+    /* Author link in top-right */
+    .header-meta {
+      font-size: .8rem;
+      color: var(--muted);
+    }
+    .header-meta a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .header-meta a:hover { text-decoration: underline; }
+
+    /* ── Main layout ── */
+    .layout {
+      display: grid;
+      /* Two equal columns with a thin gutter */
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+      height: calc(100vh - 65px);
+    }
+
+    /* ── Toolbar (spans both columns) ── */
+    .toolbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .8rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-wrap: wrap;
+    }
+
+    /* Tab-style action buttons */
+    .btn {
+      font-family: var(--sans);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      padding: .45rem 1rem;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(240,224,64,.08);
+    }
+    /* Primary CTA */
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover {
+      background: #ffe800;
+      border-color: #ffe800;
+      color: var(--bg);
+    }
+    .btn-danger  { --accent: var(--danger); }
+    .btn-success { --accent: var(--success); }
+
+    .toolbar-sep {
+      width: 1px;
+      height: 22px;
+      background: var(--border);
+      margin: 0 .2rem;
+    }
+
+    /* Stats pill row */
+    .stat-pills {
+      display: flex;
+      gap: .5rem;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+    .stat-pill {
+      font-family: var(--mono);
+      font-size: .7rem;
+      padding: .3rem .7rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    /* Highlighted stat pills when JSON is valid */
+    .stat-pill.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(64,224,200,.07);
+    }
+
+    /* ── Pane (editor / output) ── */
+    .pane {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .pane:last-child { border-right: none; }
+
+    .pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .6rem 1.2rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .pane-header-actions { display: flex; gap: .4rem; }
+
+    /* Small icon buttons in pane header */
+    .icon-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .75rem;
+      padding: .2rem .5rem;
+      transition: all .15s;
+      font-family: var(--mono);
+    }
+    .icon-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Input textarea ── */
+    textarea#input {
+      flex: 1;
+      width: 100%;
+      background: var(--bg);
+      border: none;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .82rem;
+      line-height: 1.7;
+      padding: 1.2rem 1.5rem;
+      resize: none;
+      outline: none;
+      tab-size: 2;
+    }
+    textarea#input::placeholder { color: var(--muted); }
+
+    /* ── Output panel (formatted / tree / csv) ── */
+    #output-container {
+      flex: 1;
+      overflow: auto;
+      background: var(--bg);
+      padding: 1rem 1.5rem;
+    }
+
+    /* Pre-formatted code output */
+    #output {
+      font-family: var(--mono);
+      font-size: .82rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ── Error / status banner ── */
+    #status {
+      padding: .55rem 1.5rem;
+      font-size: .78rem;
+      font-weight: 700;
+      font-family: var(--mono);
+      border-top: 1px solid var(--border);
+      min-height: 34px;
+    }
+    #status.ok    { color: var(--success); background: rgba(61,220,132,.07); }
+    #status.error { color: var(--danger);  background: rgba(255,77,109,.07); }
+    #status.idle  { color: var(--muted); }
+
+    /* ── JSON syntax highlight colours ── */
+    .j-key  { color: var(--j-key);  }
+    .j-str  { color: var(--j-str);  }
+    .j-num  { color: var(--j-num);  }
+    .j-bool { color: var(--j-bool); }
+    .j-null { color: var(--j-null); }
+    .j-brace{ color: var(--muted);  }  /* { } [ ] */
+
+    /* ── Tree viewer ── */
+    .tree-node { margin-left: 1.2rem; border-left: 1px dashed var(--border); padding-left: .8rem; }
+    .tree-node:hover > .tree-row { background: var(--surface2); border-radius: 4px; }
+
+    .tree-row {
+      display: flex;
+      align-items: baseline;
+      gap: .4rem;
+      cursor: pointer;
+      padding: .1rem .3rem;
+      border-radius: 4px;
+      user-select: none;
+    }
+    .tree-toggle {
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--accent);
+      width: .9rem;
+      flex-shrink: 0;
+    }
+    .tree-key   { color: var(--j-key);  font-size: .8rem; font-family: var(--mono); }
+    .tree-colon { color: var(--muted);  font-size: .8rem; font-family: var(--mono); }
+    .tree-type  { font-size: .65rem; padding: .1rem .35rem; border-radius: 4px; background: var(--border); color: var(--muted); font-family: var(--mono); }
+    .tree-children { /* shown/hidden by JS */ }
+    .tree-children.collapsed { display: none; }
+
+    /* ── CSV output table ── */
+    .csv-table-wrap { overflow: auto; }
+    table.csv-table {
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: .78rem;
+      width: 100%;
+    }
+    .csv-table th {
+      background: var(--surface2);
+      color: var(--accent);
+      padding: .45rem .8rem;
+      text-align: left;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .csv-table td {
+      padding: .4rem .8rem;
+      border: 1px solid var(--border);
+      color: var(--text);
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .csv-table tr:nth-child(even) td { background: var(--surface); }
+
+    /* ── Tab switcher (Format / Tree / CSV) ── */
+    .view-tabs {
+      display: flex;
+      gap: .3rem;
+    }
+    .tab {
+      font-family: var(--sans);
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: .25rem .7rem;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      text-transform: uppercase;
+    }
+    .tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+    .tab:hover:not(.active) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Empty state placeholder ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: .8rem;
+      color: var(--muted);
+    }
+    .empty-brace {
+      font-size: 4rem;
+      font-family: var(--mono);
+      color: var(--border);
+      line-height: 1;
+    }
+    .empty-hint { font-size: .82rem; text-align: center; line-height: 1.6; }
+
+    /* ── Toast notification ── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+      font-size: .82rem;
+      padding: .6rem 1.2rem;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+      z-index: 99;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Scrollbar styling ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ── Responsive: stack on narrow screens ── */
+    @media (max-width: 780px) {
+      .layout { grid-template-columns: 1fr; height: auto; }
+      .pane { min-height: 40vh; }
+      .stat-pills { margin-left: 0; }
+      header { padding: 1rem 1.2rem; }
+      .toolbar { padding: .6rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+     Logo + author info
+═══════════════════════════════════════ -->
+<header>
+  <a class="logo" href="#">
+    <span class="logo-brace">{}</span>
+    <span class="logo-name">JSON Toolkit</span>
+    <span class="logo-badge">v1.0</span>
+  </a>
+  <span class="header-meta">
+    Built by <a href="https://github.com/timfu" target="_blank">Tim Fu</a>
+    &nbsp;·&nbsp; Side Project &nbsp;·&nbsp; 100% client-side
+  </span>
+</header>
+
+
+<!-- ═══════════════════════════════════════
+     MAIN LAYOUT
+═══════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- ── TOOLBAR ─────────────────────────── -->
+  <div class="toolbar">
+
+    <!-- Primary actions -->
+    <button class="btn btn-primary" onclick="doFormat()">⚡ Format</button>
+    <button class="btn" onclick="doMinify()">⬛ Minify</button>
+    <button class="btn" onclick="doValidate()">✔ Validate</button>
+
+    <div class="toolbar-sep"></div>
+
+    <!-- Utilities -->
+    <button class="btn" onclick="loadSample()">📋 Sample</button>
+    <button class="btn" onclick="clearAll()">✕ Clear</button>
+
+    <div class="toolbar-sep"></div>
+
+    <!-- Keyboard shortcut hint -->
+    <span style="font-size:.7rem;color:var(--muted);font-family:var(--mono);">
+      Ctrl+Enter to format
+    </span>
+
+    <!-- Stats pills — updated after each parse -->
+    <div class="stat-pills">
+      <span class="stat-pill" id="stat-valid">— valid</span>
+      <span class="stat-pill" id="stat-keys">— keys</span>
+      <span class="stat-pill" id="stat-depth">— depth</span>
+      <span class="stat-pill" id="stat-size">— bytes</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       LEFT PANE — Input
+  ══════════════════════════════════════ -->
+  <div class="pane">
+    <div class="pane-header">
+      Input
+      <div class="pane-header-actions">
+        <button class="icon-btn" onclick="pasteFromClipboard()" title="Paste">⌘V Paste</button>
+      </div>
+    </div>
+
+    <!--
+      The raw input textarea.
+      All user JSON goes here before processing.
+    -->
+    <textarea
+      id="input"
+      spellcheck="false"
+      autocomplete="off"
+      placeholder='Paste your JSON here…
+
+{
+  "name": "Tim Fu",
+  "role": "Full-stack Developer",
+  "tools": ["VS Code", "Node.js", "React"]
+}'
+    ></textarea>
+
+    <!-- Status bar: shows parse errors or success -->
+    <div id="status" class="idle">Ready — paste JSON and hit Format</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       RIGHT PANE — Output
+  ══════════════════════════════════════ -->
+  <div class="pane">
+    <div class="pane-header">
+      Output
+      <div class="pane-header-actions">
+        <!-- View mode tabs -->
+        <div class="view-tabs">
+          <button class="tab active" id="tab-format" onclick="switchTab('format')">Code</button>
+          <button class="tab"        id="tab-tree"   onclick="switchTab('tree')">Tree</button>
+          <button class="tab"        id="tab-csv"    onclick="switchTab('csv')">CSV</button>
+        </div>
+
+        <div class="toolbar-sep"></div>
+
+        <button class="icon-btn" onclick="copyOutput()" title="Copy">Copy</button>
+        <button class="icon-btn" onclick="downloadOutput()" title="Download">↓ Save</button>
+      </div>
+    </div>
+
+    <!--
+      The output container renders one of three views:
+        - formatted (syntax-highlighted code)
+        - tree (collapsible nodes)
+        - csv (table preview)
+    -->
+    <div id="output-container">
+      <!-- Default empty state -->
+      <div class="empty-state" id="empty-state">
+        <div class="empty-brace">{ }</div>
+        <div class="empty-hint">
+          Paste JSON in the editor<br>and press <strong style="color:var(--accent)">⚡ Format</strong>
+        </div>
+      </div>
+      <!-- Populated by JS -->
+      <div id="output" style="display:none;"></div>
+    </div>
+  </div>
+
+</div><!-- /.layout -->
+
+
+<!-- Toast notification element -->
+<div id="toast"></div>
+
+
+<!-- ═══════════════════════════════════════
+     JAVASCRIPT
+     All logic is in one self-contained block.
+     Zero external libraries.
+═══════════════════════════════════════ -->
+<script>
+/*
+ * ─────────────────────────────────────────
+ *  STATE
+ * ─────────────────────────────────────────
+ */
+let parsedData  = null;  // Last successfully parsed JSON object
+let currentTab  = 'format'; // 'format' | 'tree' | 'csv'
+let currentMode = 'format'; // last action: 'format' | 'minify'
+
+/*
+ * ─────────────────────────────────────────
+ *  KEYBOARD SHORTCUT
+ *  Ctrl+Enter (or Cmd+Enter) triggers Format
+ * ─────────────────────────────────────────
+ */
+document.getElementById('input').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    doFormat();
+  }
+});
+
+/*
+ * ─────────────────────────────────────────
+ *  CORE ACTIONS
+ * ─────────────────────────────────────────
+ */
+
+/** FORMAT — pretty-print with 2-space indent */
+function doFormat() {
+  const raw = document.getElementById('input').value.trim();
+  if (!raw) { setStatus('idle', 'Nothing to format.'); return; }
+
+  const result = tryParse(raw);
+  if (!result.ok) { setStatus('error', '✗ ' + result.error); return; }
+
+  parsedData  = result.data;
+  currentMode = 'format';
+  const formatted = JSON.stringify(parsedData, null, 2);
+
+  showEmptyState(false);
+  updateStats(raw, parsedData);
+
+  // Re-render whichever tab is active
+  renderCurrentTab(formatted);
+  setStatus('ok', '✓ Valid JSON — formatted successfully');
+}
+
+/** MINIFY — strip all whitespace */
+function doMinify() {
+  const raw = document.getElementById('input').value.trim();
+  if (!raw) { setStatus('idle', 'Nothing to minify.'); return; }
+
+  const result = tryParse(raw);
+  if (!result.ok) { setStatus('error', '✗ ' + result.error); return; }
+
+  parsedData  = result.data;
+  currentMode = 'minify';
+  const minified = JSON.stringify(parsedData);
+
+  showEmptyState(false);
+  updateStats(raw, parsedData);
+
+  // Always show Code tab for minified output (tree/csv still work via format)
+  switchTab('format');
+  document.getElementById('output').innerHTML = escapeHtml(minified);
+  setStatus('ok', `✓ Minified — ${minified.length} bytes`);
+}
+
+/** VALIDATE — parse and report only; don't change output */
+function doValidate() {
+  const raw = document.getElementById('input').value.trim();
+  if (!raw) { setStatus('idle', 'Paste JSON first.'); return; }
+
+  const result = tryParse(raw);
+  if (result.ok) {
+    parsedData = result.data;
+    updateStats(raw, parsedData);
+    setStatus('ok', `✓ Valid JSON — ${countKeys(parsedData)} keys, depth ${getDepth(parsedData)}`);
+  } else {
+    setStatus('error', '✗ ' + result.error);
+  }
+}
+
+/** CLEAR — reset everything */
+function clearAll() {
+  document.getElementById('input').value = '';
+  document.getElementById('output').innerHTML = '';
+  document.getElementById('output').style.display = 'none';
+  showEmptyState(true);
+  parsedData = null;
+  setStatus('idle', 'Cleared');
+  resetStats();
+}
+
+/** SAMPLE — inject a rich demo JSON for quick testing */
+function loadSample() {
+  const sample = {
+    developer: {
+      name: "Tim Fu",
+      role: "Full-stack Developer",
+      location: "Taiwan",
+      available: true,
+      experience_years: 3,
+      skills: {
+        frontend: ["React", "Vue", "TypeScript", "TailwindCSS"],
+        backend:  ["Node.js", "Python", "PostgreSQL", "Redis"],
+        tools:    ["Docker", "Git", "CI/CD", "Linux"]
+      },
+      projects: [
+        { name: "JSON Toolkit", type: "utility", stars: 42, live: true },
+        { name: "LeetCode Quest", type: "game", stars: 18, live: false }
+      ],
+      contact: {
+        github: "github.com/timfu",
+        email:  null
+      }
+    }
+  };
+  document.getElementById('input').value = JSON.stringify(sample, null, 2);
+  doFormat();
+}
+
+/*
+ * ─────────────────────────────────────────
+ *  VIEW TABS
+ * ─────────────────────────────────────────
+ */
+
+/** Switch between Code / Tree / CSV views */
+function switchTab(tab) {
+  currentTab = tab;
+
+  // Update tab button styles
+  ['format', 'tree', 'csv'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+
+  if (!parsedData) return; // Nothing parsed yet — do nothing
+
+  const formatted = JSON.stringify(parsedData, null, 2);
+  renderCurrentTab(formatted);
+}
+
+/** Dispatch to the correct renderer */
+function renderCurrentTab(formattedStr) {
+  const out = document.getElementById('output');
+  out.style.display = 'block';
+
+  if (currentTab === 'format') {
+    // Syntax-highlighted code view
+    out.innerHTML = syntaxHighlight(formattedStr);
+    out.className = '';
+
+  } else if (currentTab === 'tree') {
+    // Collapsible tree view
+    out.innerHTML = '';
+    out.className = '';
+    out.appendChild(buildTree(parsedData, null));
+
+  } else if (currentTab === 'csv') {
+    // CSV table (only works when root is an array of objects)
+    const result = buildCSVTable(parsedData);
+    out.innerHTML  = result.html;
+    out.className  = '';
+    // Store raw CSV string for the download button
+    out.dataset.csv = result.csv;
+  }
+}
+
+/*
+ * ─────────────────────────────────────────
+ *  SYNTAX HIGHLIGHTING
+ *  Converts a formatted JSON string into
+ *  colour-coded HTML spans.
+ * ─────────────────────────────────────────
+ */
+function syntaxHighlight(str) {
+  // Regex matches each token type in order
+  return str.replace(
+    /("(?:[^"\\]|\\.)*")\s*:|  ("(?:[^"\\]|\\.)*")|(true|false)|(null)|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|([\{\}\[\]])/g,
+    (match, key, str2, bool, nul, num, brace) => {
+      if (key)   return `<span class="j-key">${escapeHtml(key)}</span>:`;
+      if (str2)  return `<span class="j-str">${escapeHtml(str2)}</span>`;
+      if (bool)  return `<span class="j-bool">${bool}</span>`;
+      if (nul)   return `<span class="j-null">null</span>`;
+      if (num)   return `<span class="j-num">${num}</span>`;
+      if (brace) return `<span class="j-brace">${brace}</span>`;
+      return match;
+    }
+  );
+}
+
+/*
+ * ─────────────────────────────────────────
+ *  TREE BUILDER
+ *  Recursively builds collapsible DOM nodes.
+ * ─────────────────────────────────────────
+ */
+function buildTree(data, key) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tree-node';
+
+  const row = document.createElement('div');
+  row.className = 'tree-row';
+
+  const toggle  = document.createElement('span');
+  toggle.className = 'tree-toggle';
+
+  const keyEl   = document.createElement('span');
+  keyEl.className = 'tree-key';
+  if (key !== null) keyEl.textContent = `"${key}"`;
+
+  const colon   = document.createElement('span');
+  colon.className = 'tree-colon';
+  if (key !== null) colon.textContent = ': ';
+
+  const typeTag = document.createElement('span');
+  typeTag.className = 'tree-type';
+
+  row.appendChild(toggle);
+  if (key !== null) { row.appendChild(keyEl); row.appendChild(colon); }
+  row.appendChild(typeTag);
+  wrapper.appendChild(row);
+
+  if (Array.isArray(data)) {
+    // ── Array node ──
+    typeTag.textContent = `array[${data.length}]`;
+    toggle.textContent  = '▼';
+
+    const children = document.createElement('div');
+    children.className = 'tree-children';
+    data.forEach((item, i) => children.appendChild(buildTree(item, i)));
+    wrapper.appendChild(children);
+
+    // Toggle collapse/expand on click
+    row.addEventListener('click', () => toggleNode(toggle, children));
+
+  } else if (data !== null && typeof data === 'object') {
+    // ── Object node ──
+    const keys = Object.keys(data);
+    typeTag.textContent = `object{${keys.length}}`;
+    toggle.textContent  = '▼';
+
+    const children = document.createElement('div');
+    children.className = 'tree-children';
+    keys.forEach(k => children.appendChild(buildTree(data[k], k)));
+    wrapper.appendChild(children);
+
+    row.addEventListener('click', () => toggleNode(toggle, children));
+
+  } else {
+    // ── Leaf node ──
+    toggle.textContent = '·';
+    const valEl = document.createElement('span');
+
+    if (data === null)            { valEl.className = 'j-null'; valEl.textContent = 'null'; }
+    else if (typeof data === 'boolean') { valEl.className = 'j-bool'; valEl.textContent = String(data); }
+    else if (typeof data === 'number')  { valEl.className = 'j-num';  valEl.textContent = String(data); }
+    else                                { valEl.className = 'j-str';  valEl.textContent = `"${data}"`; }
+
+    typeTag.textContent = typeof data;
+    row.appendChild(valEl);
+  }
+
+  return wrapper;
+}
+
+/** Toggle a tree node between expanded and collapsed */
+function toggleNode(toggleEl, childrenEl) {
+  const collapsed = childrenEl.classList.toggle('collapsed');
+  toggleEl.textContent = collapsed ? '▶' : '▼';
+}
+
+/*
+ * ─────────────────────────────────────────
+ *  CSV CONVERTER
+ *  Converts a JSON array-of-objects into an
+ *  HTML preview table + downloadable CSV text.
+ *  Non-array inputs show a helpful message.
+ * ─────────────────────────────────────────
+ */
+function buildCSVTable(data) {
+  // Must be a non-empty array
+  if (!Array.isArray(data) || data.length === 0) {
+    return {
+      html: `<div class="empty-state" style="height:200px">
+               <div class="empty-brace">[ ]</div>
+               <div class="empty-hint">CSV view requires a JSON <strong>array of objects</strong>.<br>Try the sample data.</div>
+             </div>`,
+      csv: ''
+    };
+  }
+
+  // Collect all unique keys (column headers) from every row
+  const headers = [...new Set(data.flatMap(row => Object.keys(row)))];
+
+  // Build CSV string
+  const csvLines = [
+    headers.map(h => `"${h}"`).join(','),
+    ...data.map(row =>
+      headers.map(h => {
+        const val = row[h] == null ? '' : String(row[h]);
+        return `"${val.replace(/"/g, '""')}"`; // escape quotes
+      }).join(',')
+    )
+  ];
+  const csv = csvLines.join('\n');
+
+  // Build HTML table
+  const html = `
+    <div class="csv-table-wrap">
+      <table class="csv-table">
+        <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${data.map(row =>
+            `<tr>${headers.map(h => {
+              const v = row[h];
+              const display = v == null ? '<span style="color:var(--muted)">null</span>' : escapeHtml(String(v));
+              return `<td>${display}</td>`;
+            }).join('')}</tr>`
+          ).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  return { html, csv };
+}
+
+/*
+ * ─────────────────────────────────────────
+ *  STATS BAR
+ *  Counts keys, measures depth, reports size.
+ * ─────────────────────────────────────────
+ */
+function updateStats(rawStr, data) {
+  const keys    = countKeys(data);
+  const depth   = getDepth(data);
+  const bytes   = new Blob([rawStr]).size;
+
+  const fmt = (n) => n >= 1024 ? `${(n/1024).toFixed(1)}kb` : `${n}b`;
+
+  setStat('stat-valid', '✓ valid',       true);
+  setStat('stat-keys',  `${keys} keys`,  true);
+  setStat('stat-depth', `${depth} deep`, true);
+  setStat('stat-size',  fmt(bytes),      true);
+}
+
+function resetStats() {
+  setStat('stat-valid', '— valid',  false);
+  setStat('stat-keys',  '— keys',   false);
+  setStat('stat-depth', '— depth',  false);
+  setStat('stat-size',  '— bytes',  false);
+}
+
+function setStat(id, text, active) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.classList.toggle('active', active);
+}
+
+/** Recursively count all keys in the object tree */
+function countKeys(data) {
+  if (data === null || typeof data !== 'object') return 0;
+  if (Array.isArray(data)) return data.reduce((s, v) => s + countKeys(v), 0);
+  return Object.keys(data).length +
+         Object.values(data).reduce((s, v) => s + countKeys(v), 0);
+}
+
+/** Recursively find maximum nesting depth */
+function getDepth(data) {
+  if (data === null || typeof data !== 'object') return 0;
+  if (Array.isArray(data)) return 1 + Math.max(0, ...data.map(getDepth));
+  const vals = Object.values(data);
+  return 1 + (vals.length ? Math.max(...vals.map(getDepth)) : 0);
+}
+
+/*
+ * ─────────────────────────────────────────
+ *  CLIPBOARD & FILE OPERATIONS
+ * ─────────────────────────────────────────
+ */
+
+/** Copy the current output text to the clipboard */
+async function copyOutput() {
+  const out = document.getElementById('output');
+  const text = currentTab === 'csv'
+    ? out.dataset.csv                    // CSV: copy raw CSV text
+    : out.innerText;                     // Code/Tree: copy text content
+
+  if (!text) { toast('Nothing to copy'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Copied ✓');
+  } catch {
+    toast('Copy failed');
+  }
+}
+
+/** Paste clipboard content into the input textarea */
+async function pasteFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById('input').value = text;
+    doFormat(); // Auto-format on paste
+  } catch {
+    toast('Paste failed — use Ctrl+V instead');
+  }
+}
+
+/** Download the output as .json or .csv */
+function downloadOutput() {
+  const out = document.getElementById('output');
+
+  let content, filename, mime;
+  if (currentTab === 'csv' && out.dataset.csv) {
+    content  = out.dataset.csv;
+    filename = 'output.csv';
+    mime     = 'text/csv';
+  } else if (parsedData) {
+    const indent = currentMode === 'minify' ? 0 : 2;
+    content  = JSON.stringify(parsedData, null, indent);
+    filename = 'output.json';
+    mime     = 'application/json';
+  } else {
+    toast('Nothing to download'); return;
+  }
+
+  // Programmatically trigger a file download
+  const blob = new Blob([content], { type: mime });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`Downloaded ${filename}`);
+}
+
+/*
+ * ─────────────────────────────────────────
+ *  UTILITIES
+ * ─────────────────────────────────────────
+ */
+
+/** Safely parse JSON and return { ok, data, error } */
+function tryParse(raw) {
+  try {
+    return { ok: true, data: JSON.parse(raw) };
+  } catch (e) {
+    // Provide a cleaner error message by extracting position info
+    const msg = e.message.replace(/^JSON\.parse: /, '').replace(/^Unexpected token /, 'Unexpected "');
+    return { ok: false, error: msg };
+  }
+}
+
+/** Escape HTML special characters to prevent XSS */
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Set the status bar content and style */
+function setStatus(type, message) {
+  const el = document.getElementById('status');
+  el.textContent = message;
+  el.className   = type; // 'ok' | 'error' | 'idle'
+}
+
+/** Show or hide the empty-state placeholder */
+function showEmptyState(show) {
+  document.getElementById('empty-state').style.display = show ? 'flex' : 'none';
+  document.getElementById('output').style.display      = show ? 'none' : 'block';
+}
+
+/** Flash a toast notification for 2 seconds */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+</script>
+
+</body>
+</html>
