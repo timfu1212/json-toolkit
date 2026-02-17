@@ -1,0 +1,30 @@
+:root {
+  --bg: #0b0e1a;
+  --surface: #111627;
+  --surface2: #1a2035;
+  --border: #252d45;
+  --accent: #f0e040;
+  --accent2: #40e0c8;
+  --danger: #ff4d6d;
+  --success: #3ddc84;
+  --text: #e8ecf5;
+  --muted: #6b7694;
+  --j-key: #7dd3fc;
+  --j-str: #86efac;
+  --j-num: #fbbf24;
+  --j-bool: #c084fc;
+  --j-null: #fb7185;
+  --mono: "Fira Code", monospace;
+  --sans: "Syne", sans-serif;
+}
+
+/* 這裡放入你原本所有的 CSS 內容，例如 body, .layout, .pane 等樣式... */
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  background-image: radial-gradient(circle, #1e2640 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* (省略中間其餘 CSS 內容，請將原本程式碼中的 Style 段落完整複製到這裡) */
