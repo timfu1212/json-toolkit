@@ -3,18 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JSON Toolkit — by Tim Fu</title>
+    <title>JSON Toolkit — by Junting Fu</title>
 
+    <!-- 外部 CSS -->
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- 字體從 Google Fonts 載入 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Fira+Code:wght@400;500&display=swap"
       rel="stylesheet"
     />
-
-    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <!-- ═════════════════════════════════════ HEADER═══════════════════════════════════════ -->
     <header>
       <a class="logo" href="#">
         <span class="logo-brace">{}</span>
@@ -22,20 +25,39 @@
         <span class="logo-badge">v1.0</span>
       </a>
       <span class="header-meta">
-        Built by <a href="https://github.com/timfu" target="_blank">Tim Fu</a>
+        Built by
+        <a href="https://github.com/timfu1212" target="_blank">Junting Fu</a>
+        &nbsp;·&nbsp; Side Project &nbsp;·&nbsp; 100% client-side
       </span>
     </header>
 
+    <!-- ═══════════════════════════════════════
+     MAIN LAYOUT
+═══════════════════════════════════════ -->
     <div class="layout">
+      <!-- ── TOOLBAR ─────────────────────────── -->
       <div class="toolbar">
         <button class="btn btn-primary" onclick="doFormat()">⚡ Format</button>
         <button class="btn" onclick="doMinify()">⬛ Minify</button>
         <button class="btn" onclick="doValidate()">✔ Validate</button>
+
         <div class="toolbar-sep"></div>
+
         <button class="btn" onclick="loadSample()">📋 Sample</button>
         <button class="btn" onclick="clearAll()">✕ Clear</button>
+
         <div class="toolbar-sep"></div>
-        <span class="shortcut-hint">Ctrl+Enter to format</span>
+
+        <span
+          style="
+            font-size: 0.7rem;
+            color: var(--muted);
+            font-family: var(--mono);
+          "
+        >
+          Ctrl+Enter to format
+        </span>
+
         <div class="stat-pills">
           <span class="stat-pill" id="stat-valid">— valid</span>
           <span class="stat-pill" id="stat-keys">— keys</span>
@@ -44,23 +66,32 @@
         </div>
       </div>
 
+      <!-- LEFT PANE — Input -->
       <div class="pane">
         <div class="pane-header">
           Input
           <div class="pane-header-actions">
-            <button class="icon-btn" onclick="pasteFromClipboard()">
+            <button
+              class="icon-btn"
+              onclick="pasteFromClipboard()"
+              title="Paste"
+            >
               ⌘V Paste
             </button>
           </div>
         </div>
+
         <textarea
           id="input"
           spellcheck="false"
-          placeholder="Paste your JSON here..."
+          autocomplete="off"
+          placeholder='Paste your JSON here…\n\n{\n  "name": "Tim Fu",\n  "role": "Full-stack Developer",\n  "tools": ["VS Code", "Node.js", "React"]\n}'
         ></textarea>
-        <div id="status" class="idle">Ready</div>
+
+        <div id="status" class="idle">Ready — paste JSON and hit Format</div>
       </div>
 
+      <!-- RIGHT PANE — Output -->
       <div class="pane">
         <div class="pane-header">
           Output
@@ -80,23 +111,39 @@
                 CSV
               </button>
             </div>
+
             <div class="toolbar-sep"></div>
-            <button class="icon-btn" onclick="copyOutput()">Copy</button>
-            <button class="icon-btn" onclick="downloadOutput()">↓ Save</button>
+
+            <button class="icon-btn" onclick="copyOutput()" title="Copy">
+              Copy
+            </button>
+            <button
+              class="icon-btn"
+              onclick="downloadOutput()"
+              title="Download"
+            >
+              ↓ Save
+            </button>
           </div>
         </div>
+
         <div id="output-container">
           <div class="empty-state" id="empty-state">
             <div class="empty-brace">{ }</div>
-            <div class="empty-hint">Paste JSON and press ⚡ Format</div>
+            <div class="empty-hint">
+              Paste JSON in the editor<br />and press
+              <strong style="color: var(--accent)">⚡ Format</strong>
+            </div>
           </div>
           <div id="output" style="display: none"></div>
         </div>
       </div>
     </div>
 
+    <!-- Toast notification -->
     <div id="toast"></div>
 
+    <!-- 外部 JavaScript -->
     <script src="script.js"></script>
   </body>
 </html>
