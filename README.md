@@ -19,7 +19,7 @@ JSON 是現代開發者的日常語言，但在快速開發中，我們需要的
 
 ## 🔍 關於這個專案
 
-**JSON Toolkit** 是一個為開發者打造的輕量化 JSON 處理工具，特色是：
+**JSON Formatter** 是一個為開發者打造的輕量化 JSON 處理工具，特色是：
 
 - 🚫 **零依賴**：純 HTML/CSS/JS，無需安裝任何套件
 - 🔒 **本地執行**：所有資料都在你的瀏覽器中處理，不會上傳到任何伺服器
@@ -102,11 +102,11 @@ JSON 是現代開發者的日常語言，但在快速開發中，我們需要的
 本地端:
 
 1. 下載 `index.html` `style.css` `script.js` 。
-2. 在瀏覽器中直接開啟。
+2. 在瀏覽器中直接開啟。s
 3. 開始你的流暢 JSON 處理旅程！
 
 網頁:
-https://timfu1212.github.io/json-toolkit/
+https://timfu1212.github.io/json-Formatter/
 
 ---
 
