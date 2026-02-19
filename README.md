@@ -1,4 +1,4 @@
-# 🛠️ JSON Toolkit: 極簡暗黑 JSON 工程師助手
+# 🛠️ JSON formatter: 極簡暗黑 JSON 工程師助手
 
 ![JSON Toolkit Preview](https://img.shields.io/badge/Status-Complete-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Tech-Pure_JS_/_HTML_/_CSS-blue)
