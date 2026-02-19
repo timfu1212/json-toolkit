@@ -106,7 +106,7 @@ JSON 是現代開發者的日常語言，但在快速開發中，我們需要的
 3. 開始你的流暢 JSON 處理旅程！
 
 網頁:
-https://timfu1212.github.io/json-Formatter/
+https://timfu1212.github.io/json-formatter/
 
 ---
 
